@@ -14,16 +14,46 @@ const inspectScript = `(() => {
   const media=[...document.querySelectorAll('video,audio')].filter(visible).map(e=>({time:Number.isFinite(e.currentTime)?e.currentTime:null,playing:!e.paused&&!e.ended&&e.readyState>=2,muted:!!e.muted||e.volume===0,hasAudio:typeof e.mozHasAudio==='boolean'?e.mozHasAudio:(e.audioTracks?e.audioTracks.length>0:null)}));
   return {button, ambiguous:leaf.length>1, media};
 })()`;
+// Runs in the page. It fills only known attendee fields on the recognized
+// registration screen; consent controls and form submission are never touched.
+function fillAttendeeForm(profile) {
+  if (location.protocol !== 'https:' || !/(^|\.)webinarjam\.(com|net)$/i.test(location.hostname)) return {registration:false};
+  const text=(document.body?.innerText||'').toLowerCase().replace(/\s+/g,' ');
+  if (!text.includes('enter the webinar room') && !text.includes('enter room')) return {registration:false};
+  const visible=e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width>0&&r.height>0&&s.display!=='none'&&s.visibility!=='hidden'};
+  const inputs=[...document.querySelectorAll('input')].filter(visible);
+  const descriptor=e=>[e.name,e.id,e.getAttribute('placeholder'),e.getAttribute('aria-label'),e.getAttribute('autocomplete')].filter(Boolean).join(' ').toLowerCase();
+  const first=inputs.filter(e=>['text',''].includes((e.type||'').toLowerCase())&&/(first[ _-]?name|given[ _-]?name)/.test(descriptor(e)));
+  const emails=inputs.filter(e=>e.type==='email'||(/email/.test(descriptor(e))&&['text','email'].includes(e.type)));
+  if(first.length!==1||emails.length!==1)return {registration:false};
+  let filled=0;
+  const put=(el,value)=>{if(!value||el.value||el===document.activeElement)return;const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')?.set;if(setter)setter.call(el,value);else el.value=value;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));filled++;};
+  put(first[0],profile.firstName);put(emails[0],profile.email);
+  // Only native, initially unselected dropdowns with an exact label match are safe.
+  // Custom selectors and defaults require the attendee to choose manually.
+  for(const [key,pattern] of [['country',/country/],['region',/(state|province|region)/]]) {
+    if(!profile[key])continue;
+    const selects=[...document.querySelectorAll('select')].filter(e=>visible(e)&&pattern.test(descriptor(e)));
+    if(selects.length!==1||selects[0].value||selects[0]===document.activeElement)continue;
+    const options=[...selects[0].options].filter(o=>!o.disabled&&[o.value,o.textContent].some(v=>String(v).trim().toLowerCase()===profile[key].toLowerCase()));
+    if(options.length===1){selects[0].value=options[0].value;selects[0].dispatchEvent(new Event('input',{bubbles:true}));selects[0].dispatchEvent(new Event('change',{bubbles:true}));filled++;}
+  }
+  return {registration:true,filled};
+}
 class WebinarSession {
-  constructor({window, onStatus, inspectInterval=2000, maxWait=600000}) { this.window=window;this.onStatus=onStatus;this.interval=inspectInterval;this.maxWait=maxWait;this.last=null;this.clicked=false;this.previous=null;this.started=Date.now();this.running=false;this.timer=null; }
+  constructor({window, onStatus, getProfile=async()=>({}), inspectInterval=2000, maxWait=600000}) { this.window=window;this.getProfile=getProfile;this.registrationNotified=false;this.onStatus=onStatus;this.interval=inspectInterval;this.maxWait=maxWait;this.last=null;this.clicked=false;this.previous=null;this.started=Date.now();this.running=false;this.timer=null; }
   status(message) {if(this.last!==message){this.last=message;this.onStatus(message)}}
-  start(){this.status('Opening webinar; sign-in or admission may be required');this.timer=setInterval(()=>this.check(),this.interval);this.window.on('closed',()=>this.stop());this.window.webContents.on('did-navigate',()=>{this.clicked=false;this.previous=null;});}
+  start(){this.status('Opening webinar; sign-in or admission may be required');this.timer=setInterval(()=>this.check(),this.interval);this.window.on('closed',()=>this.stop());this.window.webContents.on('did-navigate',()=>{this.clicked=false;this.previous=null;this.registrationNotified=false;});}
   stop(){clearInterval(this.timer);this.timer=null;}
   async check(){
     if(this.running||this.window.isDestroyed())return;this.running=true;
     try {
       const contents=this.window.webContents,url=contents.getURL();
       if(!isWebinarJam(url)){if(Date.now()-this.started>this.maxWait){this.status('Webinar page not reached; please check sign-in or redirects');this.stop();}else this.status('Waiting for a WebinarJam page; check sign-in or redirects');return;}
+      const profile=await this.getProfile();
+      const arg=JSON.stringify(profile).replace(/</g,'\\u003c');
+      const form=await contents.executeJavaScript(`(${fillAttendeeForm.toString()})(${arg})`,true);
+      if(form.registration){if(!this.registrationNotified){this.window.show();this.window.focus();this.registrationNotified=true;}this.status('Review registration details and consent, then enter the room');return;}
       const result=await contents.executeJavaScript(inspectScript,true);
       // Media can be hosted inside an iframe. Read only coarse media state there;
       // a button inside a frame is not clicked using unverified coordinates.
@@ -42,4 +72,4 @@ class WebinarSession {
     } catch {this.status('Unable to inspect the webinar; please check the window');} finally {this.running=false;}
   }
 }
-module.exports={isWebinarJam,inspectScript,WebinarSession};
+module.exports={isWebinarJam,inspectScript,fillAttendeeForm,WebinarSession};

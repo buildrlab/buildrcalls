@@ -4,6 +4,7 @@ const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const transcription = require('./transcription');
 const { isWebinarJam, WebinarSession } = require('./webinarjam');
+const attendeeProfile = require('./attendee-profile');
 const webinarWindows = new Map();
 const transcriptionJobs = new Set();
 let win, stream, activeId = null;
@@ -27,6 +28,9 @@ app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(
 ipcMain.handle('data:read', () => readData());
 ipcMain.handle('data:save', (_e, data) => { if (!data || !Array.isArray(data.calls) || typeof data.timezone !== 'string') throw Error('Invalid data'); saveData(data); });
 ipcMain.handle('open:link', async (_e, url) => { const parsed = new URL(url); if (parsed.protocol !== 'https:') throw Error('Only HTTPS links are supported'); await shell.openExternal(parsed.href); });
+const attendeeProfilePath = () => path.join(app.getPath('appData'), 'BuildrCalls', 'attendee-profile.json');
+ipcMain.handle('attendee:read', () => attendeeProfile.readProfile(attendeeProfilePath()));
+ipcMain.handle('attendee:save', (_e,profile) => attendeeProfile.saveProfile(attendeeProfilePath(),profile));
 ipcMain.handle('webinar:open', async (_e, id) => {
   const call = readData().calls.find(c => c.id === id);
   if (!call || call.platform !== 'WebinarJam' || !isWebinarJam(call.url)) throw Error('Use a WebinarJam HTTPS link for automatic playback.');
@@ -34,7 +38,7 @@ ipcMain.handle('webinar:open', async (_e, id) => {
   const meeting = new BrowserWindow({width:1200,height:850,title:'BuildrCalls · WebinarJam',webPreferences:{partition:'persist:buildrcalls-webinarjam',sandbox:true,contextIsolation:true,nodeIntegration:false}});
   webinarWindows.set(id,meeting);
   meeting.webContents.setWindowOpenHandler(() => ({action:'deny'}));
-  const monitor=new WebinarSession({window:meeting,onStatus:status=>win?.webContents.send('webinar:status',id,status)});
+  const monitor=new WebinarSession({window:meeting,getProfile:()=>attendeeProfile.readProfile(attendeeProfilePath()),onStatus:status=>win?.webContents.send('webinar:status',id,status)});
   monitor.start();meeting.on('closed',()=>{webinarWindows.delete(id);win?.webContents.send('webinar:status',id,'Webinar window closed');});
   try{await meeting.loadURL(call.url)}catch(error){monitor.stop();meeting.close();throw error;}
 });

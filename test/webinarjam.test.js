@@ -16,7 +16,7 @@ test('finds one visible labelled broadcast control and returns its position',()=
 });
 test('clicks once, reports video only after time advances, and does not invent audible audio',async()=>{
  const events=[],statuses=[];let frame=0;const frames=[{button:{x:20,y:40},media:[]},{button:null,media:[{time:1,playing:true,muted:false,hasAudio:null}]},{button:null,media:[{time:2,playing:true,muted:false,hasAudio:null}]}];
- const contents={getURL:()=> 'https://event.webinarjam.com/room',executeJavaScript:async()=>frames[frame++],sendInputEvent:e=>events.push(e),on:()=>{}};
+ const contents={getURL:()=> 'https://event.webinarjam.com/room',executeJavaScript:async script=>script.includes('fillAttendeeForm')?{registration:false}:frames[frame++],sendInputEvent:e=>events.push(e),on:()=>{}};
  const window={webContents:contents,isDestroyed:()=>false,show:()=>{},focus:()=>{},on:()=>{}};
  const session=new WebinarSession({window,onStatus:s=>statuses.push(s)});
  await session.check();await session.check();await session.check();
