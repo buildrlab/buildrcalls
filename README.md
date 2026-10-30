@@ -17,7 +17,7 @@ A BuildrLab desktop prototype for planning calls, recording your screen and revi
 Visit [BuildrCalls downloads](https://github.com/buildrlab/buildrcalls/releases/latest) and choose the file for your computer:
 
 - **Mac:** open the `.dmg` for Apple Silicon (M1 or newer) or Intel, then drag BuildrCalls to Applications.
-- **Windows:** open the `.exe` installer and follow its steps.
+- **Windows:** download the Windows `.zip`, extract it, then open `BuildrCalls.exe` inside the extracted folder. Keep the other files alongside it.
 
 The early builds are unsigned and have no automatic updater. macOS or Windows may warn that the developer cannot be verified. Only install a release you trust from the official BuildrLab repository. Offline transcription requires a one-time setup below; the installer does not include whisper.cpp, FFmpeg or the model.
 
@@ -44,7 +44,7 @@ mkdir -p .models
 curl -L --fail -o .models/ggml-tiny.en.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin
 ```
 
-Restart the app. It detects Homebrew's usual Apple Silicon and Intel paths and the model in `.models`. If needed, choose each file manually under **Settings → Offline transcription**. The tiny English model is a fast starting point; a larger compatible GGML model may improve accuracy at the cost of speed and disk space. In Finder's file picker, press **Command–Shift–G** to enter a path such as `/opt/homebrew/bin/whisper-cli`.
+Restart the app. It detects Homebrew's usual Apple Silicon and Intel executable paths. When running from source it also detects the model in the project’s `.models` folder. In the downloaded app, choose your model manually under **Settings → Offline transcription**; the model is in `.models` under the directory where you ran the commands. Choose the other files there too if they are not detected. The tiny English model is a fast starting point; a larger compatible GGML model may improve accuracy at the cost of speed and disk space. In Finder's file picker, press **Command–Shift–G** to enter a path such as `/opt/homebrew/bin/whisper-cli`.
 
 ### Windows: set up offline transcription
 

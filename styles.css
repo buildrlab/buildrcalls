@@ -24,3 +24,5 @@ header p{margin-top:2px}
 .empty{padding:40px 5px}.empty-icon{margin-bottom:10px}.footnote{margin-top:10px}
 @media(max-height:760px){main{padding-top:16px}.sidebar{padding-top:16px}.brand{margin-bottom:20px}header{margin-bottom:10px}header h1{font-size:31px}.overview{min-height:105px;padding:12px 20px}.overview h2{font-size:22px;margin:5px 0}.overview p{display:none}.section-heading{margin:12px 0 8px}.calendar-card{padding:12px 16px}.calendar-head{margin-bottom:8px}.day{height:40px}.day-card{min-height:320px}.empty{padding:25px 5px}.legend{padding-top:7px}.footnote{margin-top:7px}}
 .setting-group summary{font-family:'DM Serif Display',Georgia,serif;font-size:20px;cursor:pointer;color:#29242c;list-style:none;display:flex;justify-content:space-between;align-items:center}.setting-group summary::-webkit-details-marker{display:none}.setting-group summary:after{content:'+';font-family:'DM Sans',sans-serif;font-size:20px;color:#8b6cb3}.setting-group[open] summary:after{content:'−'}.setting-divider{margin:20px 0}
+
+.brand{margin-bottom:28px}.brand img{width:136px;margin-bottom:5px}.brand>span{font-size:17px;line-height:1.1}
