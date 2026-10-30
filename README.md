@@ -12,9 +12,18 @@ A BuildrLab desktop prototype for planning calls, recording your screen and revi
 - Transcribe recordings locally with whisper.cpp and FFmpeg. The model is downloaded once; subsequent transcription runs offline.
 - Save recordings and transcripts into a folder synced by Google Drive for desktop.
 
-## Install from source
+## Download the desktop app
 
-There are currently no signed installers or automatic updates. Install [Node.js 22 LTS](https://nodejs.org/), Git, and Google Drive for desktop if you want Drive sync. Clone this repository, then from its folder:
+Visit [BuildrCalls downloads](https://github.com/buildrlab/buildrcalls/releases/latest) and choose the file for your computer:
+
+- **Mac:** open the `.dmg` for Apple Silicon (M1 or newer) or Intel, then drag BuildrCalls to Applications.
+- **Windows:** open the `.exe` installer and follow its steps.
+
+The early builds are unsigned and have no automatic updater. macOS or Windows may warn that the developer cannot be verified. Only install a release you trust from the official BuildrLab repository. Offline transcription requires a one-time setup below; the installer does not include whisper.cpp, FFmpeg or the model.
+
+## Run from source
+
+Install [Node.js 22 LTS](https://nodejs.org/), Git, and Google Drive for desktop if you want Drive sync. Clone this repository, then from its folder:
 
 ```sh
 git clone https://github.com/buildrlab/buildrcalls.git
@@ -56,6 +65,8 @@ In BuildrCalls **Settings → Offline transcription**, choose `whisper.cpp\build
 Open a saved recording from the calendar or library, then select **Transcribe offline**. FFmpeg extracts temporary audio locally; whisper.cpp writes timestamped segments. The temporary audio is removed afterward and a `.transcript.json` file is saved next to the recording, so a Drive-synced folder can sync it too. Select a timestamp to seek in the video. Accuracy and processing time depend on the model, hardware and captured audio. If there is no audible audio, there is nothing useful to transcribe.
 
 ## Recording and privacy boundaries
+
+Any HTTPS call or webinar link can be saved using **Other / custom** and a platform name. The app opens the link, but does not automatically navigate an unfamiliar service.
 
 At the scheduled time the prototype attempts to capture the first display and an available system-audio track. A recording can include anything visible on that display, including private notifications and chat. Only visible chat appears in the video; the app does not export the full chat history. A detected audio track does not guarantee audible sound. Use the recording test and listen back. There is no meeting-entry verification, automatic CAPTCHA solving, or bypass for login and waiting-room approval. Only one recording can run at a time. Closed app, sleep, permissions, meeting prompts and platform changes may prevent capture. Secure permission from the organizer and participants as appropriate.
 

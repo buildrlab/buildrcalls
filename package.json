@@ -1,1 +1,53 @@
-{"name":"callkeeper","version":"1.0.0","description":"BuildrCalls by BuildrLab: call planning and local transcription","main":"main.js","scripts":{"start":"electron .","test":"node --test"},"devDependencies":{"electron":"^37.0.0"}}
+{
+  "name": "callkeeper",
+  "version": "0.1.0",
+  "description": "BuildrCalls by BuildrLab: call planning and local transcription",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test",
+    "dist:mac": "electron-builder --mac dmg",
+    "dist:win": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "^37.0.0",
+    "electron-builder": "^26.18.0"
+  },
+  "productName": "BuildrCalls",
+  "build": {
+    "appId": "com.buildrlab.buildrcalls",
+    "productName": "BuildrCalls",
+    "asar": true,
+    "files": [
+      "index.html",
+      "styles.css",
+      "renderer.js",
+      "preload.js",
+      "main.js",
+      "transcription.js",
+      "buildrlab-logo.svg",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        "dmg"
+      ],
+      "extendInfo": {
+        "NSAudioCaptureUsageDescription": "BuildrCalls records call audio with your permission."
+      }
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}
