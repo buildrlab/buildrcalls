@@ -3,8 +3,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const transcription = require('./transcription');
+const { RecordingStore } = require('./recording-store');
 const transcriptionJobs = new Set();
-let win, stream, activeId = null;
+let win;
+const recordings = new RecordingStore((_id, error) => win?.webContents.send('record:error', error.message));
 const dataPath = () => path.join(app.getPath('userData'), 'calls.json');
 function readData() { try { return JSON.parse(fs.readFileSync(dataPath(), 'utf8')); } catch { return { calls: [], timezone: 'Etc/GMT' }; } }
 function saveData(data) { fs.mkdirSync(path.dirname(dataPath()), { recursive: true }); const tmp = dataPath() + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(data, null, 2)); fs.renameSync(tmp, dataPath()); }
@@ -25,15 +27,12 @@ app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(
 ipcMain.handle('data:read', () => readData());
 ipcMain.handle('data:save', (_e, data) => { if (!data || !Array.isArray(data.calls) || typeof data.timezone !== 'string') throw Error('Invalid data'); saveData(data); });
 ipcMain.handle('open:link', async (_e, url) => { const parsed = new URL(url); if (parsed.protocol !== 'https:') throw Error('Only HTTPS links are supported'); await shell.openExternal(parsed.href); });
-ipcMain.handle('record:start', (_e, id, title) => {
-  if (stream) throw Error('A recording is already in progress');
-  const dir = readData().recordingFolder || path.join(app.getPath('videos'), 'Callkeeper'); fs.mkdirSync(dir,{recursive:true});
-  const safe = String(title).replace(/[^a-z0-9 -]/gi,'').trim().slice(0,60) || 'Call';
-  const file = path.join(dir, `${new Date().toISOString().replace(/[:.]/g,'-')} - ${safe}.webm`);
-  stream = fs.createWriteStream(file, {flags:'wx'}); activeId = id; stream.on('error', (err) => { win?.webContents.send('record:error', err.message); stream = null; activeId = null; }); return file;
+ipcMain.handle('record:start', async (_e, id, title) => {
+  const dir = readData().recordingFolder || path.join(app.getPath('videos'), 'Callkeeper');
+  return recordings.start(id, title, dir);
 });
-ipcMain.handle('record:chunk', async (_e, id, bytes) => { if (!stream || activeId !== id) throw Error('Recording is not active'); await new Promise((resolve,reject) => stream.write(Buffer.from(bytes), err => err ? reject(err) : resolve())); });
-ipcMain.handle('record:stop', async (_e,id) => { if (!stream || activeId !== id) return; const current = stream; stream = null; activeId = null; await new Promise((resolve,reject) => current.end(err => err ? reject(err) : resolve())); });
+ipcMain.handle('record:chunk', (_e,id,bytes) => recordings.write(id,bytes));
+ipcMain.handle('record:stop', (_e,id) => recordings.stop(id));
 function findRecording(id) { const call = readData().calls.find(c => c.id === id); if (!call || !call.file || call.status === 'recording') throw Error('Recording is not available yet.'); if (!fs.existsSync(call.file)) throw Error('Recording file is unavailable. Check the folder and Google Drive sync.'); return call.file; }
 ipcMain.handle('file:show', (_e,id) => shell.showItemInFolder(findRecording(id)));
 ipcMain.handle('file:play', (_e,id) => pathToFileURL(findRecording(id)).href);
