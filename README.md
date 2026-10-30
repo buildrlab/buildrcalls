@@ -7,7 +7,7 @@ A BuildrLab desktop prototype for planning calls, recording your screen and revi
 ## Features
 
 - Month-view calendar with a configurable time zone and remembered scheduling defaults.
-- Open a call link five minutes early in your default browser; record the first display and available system audio at the scheduled time.
+- Open a call link five minutes early; WebinarJam links open in a separate app window that attempts to start playback. Record the first display and available system audio at the scheduled time.
 - Play recordings from the calendar; select transcript timestamps to jump to that point.
 - Transcribe recordings locally with whisper.cpp and FFmpeg. The model is downloaded once; subsequent transcription runs offline.
 - Save recordings and transcripts into a folder synced by Google Drive for desktop.
@@ -75,3 +75,13 @@ Calendar information, including personal meeting links, remains in the local Ele
 ## Development
 
 Run `npm test` for the local checks. A weekly grouped Dependabot version-update pull request targets `dev`; GitHub may create separate security updates for the default branch. External installations of whisper.cpp, FFmpeg and model files are not managed by Dependabot.
+
+### WebinarJam playback
+
+For a call marked WebinarJam with a direct `https://...webinarjam.com` or `webinarjam.net` link, BuildrCalls opens a separate window with its own saved browser session. You may need to sign in there. The app looks for one visible control labelled “Start the broadcast” and attempts to click it; the window may come to the foreground. The calendar reports whether video playback was observed, could not be checked, or needs attention. The control must be in the main page and match the expected label; other page designs, embedded controls, authentication, waiting rooms and third-party redirects may require manual action. This integration has not been tested against a live WebinarJam event.
+
+During recording, the app checks whether the system audio capture stream produces sound. That sound could come from another application, and a quiet period or an unavailable track is not proof the webinar has no audio. Listen to a test recording before relying on the setup. The current recorder captures the first display, so keep the webinar window and any chat visible on it. It does not record multiple calls independently.
+
+### Saved attendee details
+
+In **Settings → Attendee profile**, save your first name, email, country and region. The profile is stored on this computer in the BuildrCalls application data folder, separate from the browser session. When a recognised WebinarJam registration page appears, BuildrCalls fills matching blank name and email fields and may fill an unselected native location dropdown when it finds an exact match. The app does not select consent or submit the form. Check your country and region, review the choices, and enter the room yourself. Existing entries are not overwritten. Custom location menus, other registration layouts and pages in iframes may need manual input. Saved details are provided to a recognised registration page on a WebinarJam domain; do not save information you do not want included there.

@@ -26,7 +26,9 @@
       "main.js",
       "transcription.js",
       "buildrlab-logo.svg",
-      "package.json"
+      "package.json",
+      "webinarjam.js",
+      "attendee-profile.js"
     ],
     "directories": {
       "output": "dist"
