@@ -1,0 +1,1 @@
+{"name":"callkeeper","version":"1.0.0","description":"BuildrCalls by BuildrLab: call planning and local transcription","main":"main.js","scripts":{"start":"electron .","test":"node --test"},"devDependencies":{"electron":"^37.0.0"}}

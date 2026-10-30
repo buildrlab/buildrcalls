@@ -1,0 +1,5 @@
+const { contextBridge, ipcRenderer } = require('electron');
+contextBridge.exposeInMainWorld('keeper', {
+ read:()=>ipcRenderer.invoke('data:read'), save:data=>ipcRenderer.invoke('data:save',data), open:url=>ipcRenderer.invoke('open:link',url),
+ start:(id,title)=>ipcRenderer.invoke('record:start',id,title), chunk:(id,bytes)=>ipcRenderer.invoke('record:chunk',id,bytes), stop:id=>ipcRenderer.invoke('record:stop',id), show:id=>ipcRenderer.invoke('file:show',id), play:id=>ipcRenderer.invoke('file:play',id), chooseFolder:()=>ipcRenderer.invoke('folder:choose'), defaultFolder:()=>ipcRenderer.invoke('folder:default'), permissions:()=>ipcRenderer.invoke('permissions'), onError:fn=>ipcRenderer.on('record:error',(_e,msg)=>fn(msg)), chooseSetup:kind=>ipcRenderer.invoke('setup:choose-file',kind), detectSetup:()=>ipcRenderer.invoke('setup:detect'), readTranscript:id=>ipcRenderer.invoke('transcript:read',id), transcribe:id=>ipcRenderer.invoke('transcript:run',id), onTranscriptPhase:fn=>ipcRenderer.on('transcript:phase',(_e,id,phase)=>fn(id,phase))
+});
