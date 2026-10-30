@@ -75,3 +75,7 @@ Calendar information, including personal meeting links, remains in the local Ele
 ## Development
 
 Run `npm test` for the local checks. A weekly grouped Dependabot version-update pull request targets `dev`; GitHub may create separate security updates for the default branch. External installations of whisper.cpp, FFmpeg and model files are not managed by Dependabot.
+
+### Overlapping calls
+
+The current capture system records one call at a time. The calendar warns about overlaps; independent simultaneous call capture is under investigation. See [the architecture review](docs/overlapping-calls.md) for the technical plan and current limitations.
