@@ -29,3 +29,5 @@ header p{margin-top:2px}
 /* Only the workspace scrolls; navigation remains fixed across every view. */
 html,body{height:100%;overflow:hidden}.app{height:100vh;min-height:0;overflow:hidden}.sidebar{height:100%;overflow:hidden;flex-shrink:0}main{height:100%;min-height:0;overflow-y:auto;overscroll-behavior:contain;align-self:stretch;margin:0 auto}@media(max-height:700px){.side-bottom{display:none}.sidebar{padding-top:14px;padding-bottom:14px}.nav{padding:11px 13px}}
 .notice[hidden]{display:none}
+
+.attendee-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}@media(max-width:1100px){.attendee-grid{grid-template-columns:1fr}}

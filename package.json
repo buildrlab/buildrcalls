@@ -30,7 +30,9 @@
       "data-store.js",
       "call-form.js",
       "buildrlab-logo.svg",
-      "package.json"
+      "package.json",
+      "webinarjam.js",
+      "attendee-profile.js"
     ],
     "directories": {
       "output": "dist"
