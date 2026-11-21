@@ -1,8 +1,28 @@
 'use strict';
 const fs = require('node:fs/promises');
+const { constants: fsConstants } = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const { spawn } = require('node:child_process');
+
+const SETUP_KINDS = ['whisper', 'model', 'ffmpeg'];
+
+// Tool paths must be absolute and point at a real file; whisper and ffmpeg must also be executable. The result is
+// the normalised absolute path to use. This runs both when a path is chosen and again right before it is spawned.
+async function validateSetupFile(kind, value, platform = process.platform) {
+  if (!SETUP_KINDS.includes(kind)) throw new Error('Unknown setup item');
+  const label = kind;
+  if (!value || typeof value !== 'string' || value.includes('\0')) throw new Error(`Choose the ${label} path in Settings first.`);
+  if (!path.isAbsolute(value)) throw new Error(`${label} must be an absolute path: ${value}`);
+  const resolved = path.resolve(value);
+  const stat = await fs.stat(resolved).catch(() => { throw new Error(`${label} is not accessible: ${value}`); });
+  if (!stat.isFile()) throw new Error(`${label} must be a file: ${value}`);
+  if (kind !== 'model') {
+    if (platform === 'win32') { if (path.extname(resolved).toLowerCase() !== '.exe') throw new Error(`${label} must be an .exe file: ${value}`); }
+    else await fs.access(resolved, fsConstants.X_OK).catch(() => { throw new Error(`${label} is not executable: ${value}`); });
+  }
+  return resolved;
+}
 
 function run(command, args) {
   return new Promise((resolve, reject) => {
@@ -23,8 +43,10 @@ async function readTranscript(recording) {
   catch (error) { if (error.code === 'ENOENT') return null; throw error; }
 }
 async function transcribe({recording, whisper, model, ffmpeg}, onPhase = () => {}) {
-  for (const [label, value] of Object.entries({recording, whisper, model, ffmpeg})) { if (!value || typeof value !== 'string') throw new Error(`Choose the ${label} path in Settings first.`); await fs.access(value).catch(() => { throw new Error(`${label} is not accessible: ${value}`); }); }
-  const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'callkeeper-transcribe-'));
+  if (!recording || typeof recording !== 'string' || !path.isAbsolute(recording)) throw new Error('Choose the recording path in Settings first.');
+  await fs.access(recording).catch(() => { throw new Error(`recording is not accessible: ${recording}`); });
+  whisper = await validateSetupFile('whisper', whisper); model = await validateSetupFile('model', model); ffmpeg = await validateSetupFile('ffmpeg', ffmpeg);
+  const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'buildrcalls-transcribe-'));
   try {
     const wav=path.join(temp,'audio.wav'), output=path.join(temp,'result');
     onPhase('Extracting audio');
@@ -38,4 +60,4 @@ async function transcribe({recording, whisper, model, ffmpeg}, onPhase = () => {
     return segments;
   } finally { await fs.rm(temp,{recursive:true,force:true}); }
 }
-module.exports = { transcribe, readTranscript, transcriptPath, normalize };
+module.exports = { transcribe, readTranscript, transcriptPath, normalize, validateSetupFile, SETUP_KINDS };
