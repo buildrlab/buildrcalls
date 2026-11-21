@@ -33,10 +33,12 @@ function createWindow() {
   win.webContents.setWindowOpenHandler(() => ({action:'deny'}));
   win.webContents.on('will-navigate', (event) => event.preventDefault());
 }
-// A second instance would run its own scheduler and overwrite calls.json, so it hands over to the first and quits.
-if (!app.requestSingleInstanceLock()) app.quit();
+// A second instance would run its own scheduler and overwrite calls.json, so it hands over to the first and quits
+// without ever creating a window (the whenReady setup below only runs when the lock was obtained).
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) app.quit();
 else app.on('second-instance', () => { if (!win) return; if (win.isMinimized()) win.restore(); win.focus(); });
-app.whenReady().then(() => {
+if (gotSingleInstanceLock) app.whenReady().then(() => {
   session.defaultSession.setDisplayMediaRequestHandler(async (_request, callback) => {
     try { const sources = await desktopCapturer.getSources({types:['screen'], thumbnailSize:{width:0,height:0}}); if (!sources.length) return callback({}); callback({video:sources[0], audio:'loopback'}); } catch { callback({}); }
   });

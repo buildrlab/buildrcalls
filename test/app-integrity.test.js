@@ -51,4 +51,6 @@ test('the main process allows one instance and keeps the scheduler timers unthro
   assert.match(main, /requestSingleInstanceLock\(\)/);
   assert.match(main, /on\('second-instance'/);
   assert.match(main, /backgroundThrottling:\s*false/);
+  // Source-level check only: the app was not launched, so the runtime effect is untested.
+  assert.match(main, /if \(gotSingleInstanceLock\) app\.whenReady\(\)/);
 });
