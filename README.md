@@ -7,7 +7,7 @@ A BuildrLab desktop prototype for planning calls, recording your screen and revi
 ## Features
 
 - Month-view calendar with a configurable time zone and remembered scheduling defaults.
-- Open a call link five minutes early in your default browser; record the first display and available system audio at the scheduled time.
+- Open a call link five minutes early; WebinarJam links open in a separate app window that attempts to start playback. Record the first display and available system audio at the scheduled time.
 - Play recordings from the calendar; select transcript timestamps to jump to that point.
 - Transcribe recordings locally with whisper.cpp and FFmpeg. The model is downloaded once; subsequent transcription runs offline.
 - Save recordings and transcripts into a folder synced by Google Drive for desktop.
@@ -18,6 +18,8 @@ Visit [BuildrCalls downloads](https://github.com/buildrlab/buildrcalls/releases/
 
 - **Mac:** open the `.dmg` for Apple Silicon (M1 or newer) or Intel, then drag BuildrCalls to Applications.
 - **Windows:** download the Windows `.zip`, extract it, then open `BuildrCalls.exe` inside the extracted folder. Keep the other files alongside it.
+
+BuildrCalls needs macOS 13 (Ventura) or newer, or Windows 10 or newer.
 
 The early builds are unsigned and have no automatic updater. macOS or Windows may warn that the developer cannot be verified. Only install a release you trust from the official BuildrLab repository. Offline transcription requires a one-time setup below; the installer does not include whisper.cpp, FFmpeg or the model.
 
