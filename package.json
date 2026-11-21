@@ -1,5 +1,5 @@
 {
-  "name": "callkeeper",
+  "name": "buildrcalls",
   "version": "0.1.1",
   "description": "BuildrCalls by BuildrLab: call planning and local transcription",
   "main": "main.js",
@@ -7,10 +7,10 @@
     "start": "electron .",
     "test": "node --test",
     "dist:mac": "electron-builder --mac dmg",
-    "dist:win": "electron-builder --win nsis"
+    "dist:win": "electron-builder --win zip --x64"
   },
   "devDependencies": {
-    "electron": "^37.0.0",
+    "electron": "^45.4.1",
     "electron-builder": "^26.18.0"
   },
   "productName": "BuildrCalls",
@@ -25,6 +25,10 @@
       "preload.js",
       "main.js",
       "transcription.js",
+      "settings.js",
+      "ipc-validation.js",
+      "data-store.js",
+      "call-form.js",
       "buildrlab-logo.svg",
       "package.json",
       "webinarjam.js",
@@ -44,13 +48,9 @@
     },
     "win": {
       "target": [
-        "nsis"
+        "zip"
       ],
       "signAndEditExecutable": false
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true
     }
   }
 }

@@ -19,6 +19,8 @@ Visit [BuildrCalls downloads](https://github.com/buildrlab/buildrcalls/releases/
 - **Mac:** open the `.dmg` for Apple Silicon (M1 or newer) or Intel, then drag BuildrCalls to Applications.
 - **Windows:** download the Windows `.zip`, extract it, then open `BuildrCalls.exe` inside the extracted folder. Keep the other files alongside it.
 
+BuildrCalls needs macOS 13 (Ventura) or newer, or Windows 10 or newer.
+
 The early builds are unsigned and have no automatic updater. macOS or Windows may warn that the developer cannot be verified. Only install a release you trust from the official BuildrLab repository. Offline transcription requires a one-time setup below; the installer does not include whisper.cpp, FFmpeg or the model.
 
 ## Run from source
