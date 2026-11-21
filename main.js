@@ -4,6 +4,7 @@ const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const transcription = require('./transcription');
 const settings = require('./settings');
+const validation = require('./ipc-validation');
 const transcriptionJobs = new Set();
 let win, stream, activeId = null;
 const dataPath = () => path.join(app.getPath('userData'), 'calls.json');
@@ -39,14 +40,13 @@ app.whenReady().then(() => {
 });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 ipcMain.handle('data:read', () => settings.withoutPrivateSettings(readData()));
-ipcMain.handle('data:save', async (_e, data) => { if (!data || !Array.isArray(data.calls) || typeof data.timezone !== 'string') throw Error('Invalid data'); await loadSettings(); saveData(settings.withoutPrivateSettings(data)); });
-ipcMain.handle('open:link', async (_e, url) => { const parsed = new URL(url); if (parsed.protocol !== 'https:') throw Error('Only HTTPS links are supported'); await shell.openExternal(parsed.href); });
+ipcMain.handle('data:save', async (_e, data) => { validation.assertCallData(data); await loadSettings(); saveData(settings.withoutPrivateSettings(data)); });
+ipcMain.handle('open:link', async (_e, url) => { await shell.openExternal(validation.externalLink(url)); });
 ipcMain.handle('record:start', async (_e, id, title) => {
-  const chosen = readData().recordingFolder, dir = typeof chosen === 'string' && path.isAbsolute(chosen) ? chosen : await settings.defaultRecordingsFolder(app.getPath('videos'));
+  const dir = validation.recordingFolder(readData().recordingFolder, await settings.defaultRecordingsFolder(app.getPath('videos')));
   if (stream) throw Error('A recording is already in progress');
   fs.mkdirSync(dir,{recursive:true});
-  const safe = String(title).replace(/[^a-z0-9 -]/gi,'').trim().slice(0,60) || 'Call';
-  const file = path.join(dir, `${new Date().toISOString().replace(/[:.]/g,'-')} - ${safe}.webm`);
+  const file = path.join(dir, validation.recordingFileName(title));
   stream = fs.createWriteStream(file, {flags:'wx'}); activeId = id; stream.on('error', (err) => { win?.webContents.send('record:error', err.message); stream = null; activeId = null; }); return file;
 });
 ipcMain.handle('record:chunk', async (_e, id, bytes) => { if (!stream || activeId !== id) throw Error('Recording is not active'); await new Promise((resolve,reject) => stream.write(Buffer.from(bytes), err => err ? reject(err) : resolve())); });
