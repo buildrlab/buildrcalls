@@ -7,14 +7,25 @@ A BuildrLab desktop prototype for planning calls, recording your screen and revi
 ## Features
 
 - Month-view calendar with a configurable time zone and remembered scheduling defaults.
-- Open a call link five minutes early in your default browser; record the first display and available system audio at the scheduled time.
+- Open a call link five minutes early; WebinarJam links open in a separate app window that attempts to start playback. Record the first display and available system audio at the scheduled time.
 - Play recordings from the calendar; select transcript timestamps to jump to that point.
 - Transcribe recordings locally with whisper.cpp and FFmpeg. The model is downloaded once; subsequent transcription runs offline.
 - Save recordings and transcripts into a folder synced by Google Drive for desktop.
 
-## Install from source
+## Download the desktop app
 
-There are currently no signed installers or automatic updates. Install [Node.js 22 LTS](https://nodejs.org/), Git, and Google Drive for desktop if you want Drive sync. Clone this repository, then from its folder:
+Visit [BuildrCalls downloads](https://github.com/buildrlab/buildrcalls/releases/latest) and choose the file for your computer:
+
+- **Mac:** open the `.dmg` for Apple Silicon (M1 or newer) or Intel, then drag BuildrCalls to Applications.
+- **Windows:** download the Windows `.zip`, extract it, then open `BuildrCalls.exe` inside the extracted folder. Keep the other files alongside it.
+
+BuildrCalls needs macOS 13 (Ventura) or newer, or Windows 10 or newer.
+
+The early builds are unsigned and have no automatic updater. macOS or Windows may warn that the developer cannot be verified. Only install a release you trust from the official BuildrLab repository. Offline transcription requires a one-time setup below; the installer does not include whisper.cpp, FFmpeg or the model.
+
+## Run from source
+
+Install [Node.js 22 LTS](https://nodejs.org/), Git, and Google Drive for desktop if you want Drive sync. Clone this repository, then from its folder:
 
 ```sh
 git clone https://github.com/buildrlab/buildrcalls.git
@@ -35,7 +46,7 @@ mkdir -p .models
 curl -L --fail -o .models/ggml-tiny.en.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin
 ```
 
-Restart the app. It detects Homebrew's usual Apple Silicon and Intel paths and the model in `.models`. If needed, choose each file manually under **Settings → Offline transcription**. The tiny English model is a fast starting point; a larger compatible GGML model may improve accuracy at the cost of speed and disk space. In Finder's file picker, press **Command–Shift–G** to enter a path such as `/opt/homebrew/bin/whisper-cli`.
+Restart the app. It detects Homebrew's usual Apple Silicon and Intel executable paths. When running from source it also detects the model in the project’s `.models` folder. In the downloaded app, choose your model manually under **Settings → Offline transcription**; the model is in `.models` under the directory where you ran the commands. Choose the other files there too if they are not detected. The tiny English model is a fast starting point; a larger compatible GGML model may improve accuracy at the cost of speed and disk space. In Finder's file picker, press **Command–Shift–G** to enter a path such as `/opt/homebrew/bin/whisper-cli`.
 
 ### Windows: set up offline transcription
 
@@ -57,6 +68,8 @@ Open a saved recording from the calendar or library, then select **Transcribe of
 
 ## Recording and privacy boundaries
 
+Any HTTPS call or webinar link can be saved using **Other / custom** and a platform name. The app opens the link, but does not automatically navigate an unfamiliar service.
+
 At the scheduled time the prototype attempts to capture the first display and an available system-audio track. A recording can include anything visible on that display, including private notifications and chat. Only visible chat appears in the video; the app does not export the full chat history. A detected audio track does not guarantee audible sound. Use the recording test and listen back. There is no meeting-entry verification, automatic CAPTCHA solving, or bypass for login and waiting-room approval. Only one recording can run at a time. Closed app, sleep, permissions, meeting prompts and platform changes may prevent capture. Secure permission from the organizer and participants as appropriate.
 
 Calendar information, including personal meeting links, remains in the local Electron app data directory. Recordings and transcripts follow the configured folder's sync and sharing settings. Transcription itself does not send audio to an online service.
@@ -64,3 +77,13 @@ Calendar information, including personal meeting links, remains in the local Ele
 ## Development
 
 Run `npm test` for the local checks. A weekly grouped Dependabot version-update pull request targets `dev`; GitHub may create separate security updates for the default branch. External installations of whisper.cpp, FFmpeg and model files are not managed by Dependabot.
+
+### WebinarJam playback
+
+For a call marked WebinarJam with a direct `https://...webinarjam.com` or `webinarjam.net` link, BuildrCalls opens a separate window with its own saved browser session. You may need to sign in there. The app looks for one visible control labelled “Start the broadcast” and attempts to click it; the window may come to the foreground. The calendar reports whether video playback was observed, could not be checked, or needs attention. The control must be in the main page and match the expected label; other page designs, embedded controls, authentication, waiting rooms and third-party redirects may require manual action. This integration has not been tested against a live WebinarJam event.
+
+During recording, the app checks whether the system audio capture stream produces sound. That sound could come from another application, and a quiet period or an unavailable track is not proof the webinar has no audio. Listen to a test recording before relying on the setup. The current recorder captures the first display, so keep the webinar window and any chat visible on it. It does not record multiple calls independently.
+
+### Saved attendee details
+
+In **Settings → Attendee profile**, save your first name, email, country and region. The profile is stored on this computer in the BuildrCalls application data folder, separate from the browser session. When a recognised WebinarJam registration page appears, BuildrCalls fills matching blank name and email fields and may fill an unselected native location dropdown when it finds an exact match. The app does not select consent or submit the form. Check your country and region, review the choices, and enter the room yourself. Existing entries are not overwritten. Custom location menus, other registration layouts and pages in iframes may need manual input. Saved details are provided to a recognised registration page on a WebinarJam domain; do not save information you do not want included there.
