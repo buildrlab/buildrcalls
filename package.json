@@ -27,6 +27,7 @@
       "transcription.js",
       "settings.js",
       "ipc-validation.js",
+      "data-store.js",
       "call-form.js",
       "buildrlab-logo.svg",
       "package.json"

@@ -5,8 +5,9 @@ const { pathToFileURL } = require('node:url');
 const transcription = require('./transcription');
 const settings = require('./settings');
 const validation = require('./ipc-validation');
+const dataStore = require('./data-store');
 const transcriptionJobs = new Set();
-let win, stream, activeId = null;
+let win, stream, activeId = null, dataNotice = '';
 const dataPath = () => path.join(app.getPath('userData'), 'calls.json');
 const settingsPath = () => path.join(app.getPath('userData'), 'settings.json');
 // Settings are loaded, migrated and written one at a time so concurrent handlers cannot race on settings.json.
@@ -23,8 +24,8 @@ function detectSetup() {
 }
 // A tool the user chose (kept in main-process settings) wins over the usual install locations.
 async function effectiveSetup() { const chosen = (await loadSettings()).transcription, detected = detectSetup(); return Object.fromEntries(transcription.SETUP_KINDS.map(kind => [kind, chosen[kind] || detected[kind] || ''])); }
-function readData() { try { return JSON.parse(fs.readFileSync(dataPath(), 'utf8')); } catch { return { calls: [], timezone: 'Etc/GMT' }; } }
-function saveData(data) { fs.mkdirSync(path.dirname(dataPath()), { recursive: true }); const tmp = dataPath() + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(data, null, 2)); fs.renameSync(tmp, dataPath()); }
+function readData() { const { data, notice } = dataStore.readData(dataPath()); if (notice) dataNotice = notice; return data; }
+const saveData = data => dataStore.saveData(dataPath(), data);
 function createWindow() {
   win = new BrowserWindow({width: 1440, height: 920, minWidth: 1020, minHeight: 700, backgroundColor:'#f6f5f0', title:'BuildrCalls', webPreferences:{preload:path.join(__dirname,'preload.js'), contextIsolation:true, nodeIntegration:false, sandbox:true}});
   win.loadFile('index.html');
@@ -39,6 +40,7 @@ app.whenReady().then(() => {
   app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) createWindow(); });
 });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+ipcMain.handle('data:notice', () => { const notice = dataNotice; dataNotice = ''; return notice; });
 ipcMain.handle('data:read', () => settings.withoutPrivateSettings(readData()));
 ipcMain.handle('data:save', async (_e, data) => { validation.assertCallData(data); await loadSettings(); saveData(settings.withoutPrivateSettings(data)); });
 ipcMain.handle('open:link', async (_e, url) => { await shell.openExternal(validation.externalLink(url)); });
