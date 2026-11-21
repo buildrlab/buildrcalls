@@ -26,12 +26,16 @@ function detectSetup() {
 async function effectiveSetup() { const chosen = (await loadSettings()).transcription, detected = detectSetup(); return Object.fromEntries(transcription.SETUP_KINDS.map(kind => [kind, chosen[kind] || detected[kind] || ''])); }
 function readData() { const { data, notice } = dataStore.readData(dataPath()); if (notice) dataNotice = notice; return data; }
 const saveData = data => dataStore.saveData(dataPath(), data);
+// Chromium throttles timers in hidden windows, which would delay the scheduler tick and can mark calls as missed.
 function createWindow() {
-  win = new BrowserWindow({width: 1440, height: 920, minWidth: 1020, minHeight: 700, backgroundColor:'#f6f5f0', title:'BuildrCalls', webPreferences:{preload:path.join(__dirname,'preload.js'), contextIsolation:true, nodeIntegration:false, sandbox:true}});
+  win = new BrowserWindow({width: 1440, height: 920, minWidth: 1020, minHeight: 700, backgroundColor:'#f6f5f0', title:'BuildrCalls', webPreferences:{preload:path.join(__dirname,'preload.js'), contextIsolation:true, nodeIntegration:false, sandbox:true, backgroundThrottling:false}});
   win.loadFile('index.html');
   win.webContents.setWindowOpenHandler(() => ({action:'deny'}));
   win.webContents.on('will-navigate', (event) => event.preventDefault());
 }
+// A second instance would run its own scheduler and overwrite calls.json, so it hands over to the first and quits.
+if (!app.requestSingleInstanceLock()) app.quit();
+else app.on('second-instance', () => { if (!win) return; if (win.isMinimized()) win.restore(); win.focus(); });
 app.whenReady().then(() => {
   session.defaultSession.setDisplayMediaRequestHandler(async (_request, callback) => {
     try { const sources = await desktopCapturer.getSources({types:['screen'], thumbnailSize:{width:0,height:0}}); if (!sources.length) return callback({}); callback({video:sources[0], audio:'loopback'}); } catch { callback({}); }

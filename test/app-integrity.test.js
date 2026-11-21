@@ -46,3 +46,9 @@ test('the Windows download script builds the zip that the release workflow and R
   assert.match(pkg.scripts['dist:win'], /--win zip/);
   assert.deepEqual(pkg.build.win.target, ['zip']);
 });
+test('the main process allows one instance and keeps the scheduler timers unthrottled', () => {
+  const main = read('main.js');
+  assert.match(main, /requestSingleInstanceLock\(\)/);
+  assert.match(main, /on\('second-instance'/);
+  assert.match(main, /backgroundThrottling:\s*false/);
+});
