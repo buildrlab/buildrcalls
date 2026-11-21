@@ -3,11 +3,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const transcription = require('./transcription');
-const { isWebinarJam, WebinarSession } = require('./webinarjam');
-const attendeeProfile = require('./attendee-profile');
-const webinarWindows = new Map();
+const { RecordingStore } = require('./recording-store');
 const transcriptionJobs = new Set();
-let win, stream, activeId = null, dataNotice = '';
+let win;
+const recordings = new RecordingStore((_id, error) => win?.webContents.send('record:error', error.message));
 const dataPath = () => path.join(app.getPath('userData'), 'calls.json');
 const settingsPath = () => path.join(app.getPath('userData'), 'settings.json');
 // Settings are loaded, migrated and written one at a time so concurrent handlers cannot race on settings.json.
@@ -49,29 +48,13 @@ app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(
 ipcMain.handle('data:read', () => readData());
 ipcMain.handle('data:save', (_e, data) => { if (!data || !Array.isArray(data.calls) || typeof data.timezone !== 'string') throw Error('Invalid data'); saveData(data); });
 ipcMain.handle('open:link', async (_e, url) => { const parsed = new URL(url); if (parsed.protocol !== 'https:') throw Error('Only HTTPS links are supported'); await shell.openExternal(parsed.href); });
-const attendeeProfilePath = () => path.join(app.getPath('appData'), 'BuildrCalls', 'attendee-profile.json');
-ipcMain.handle('attendee:read', () => attendeeProfile.readProfile(attendeeProfilePath()));
-ipcMain.handle('attendee:save', (_e,profile) => attendeeProfile.saveProfile(attendeeProfilePath(),profile));
-ipcMain.handle('webinar:open', async (_e, id) => {
-  const call = readData().calls.find(c => c.id === id);
-  if (!call || call.platform !== 'WebinarJam' || !isWebinarJam(call.url)) throw Error('Use a WebinarJam HTTPS link for automatic playback.');
-  let existing=webinarWindows.get(id);if(existing && !existing.isDestroyed()){existing.show();existing.focus();return;}
-  const meeting = new BrowserWindow({width:1200,height:850,title:'BuildrCalls · WebinarJam',webPreferences:{partition:'persist:buildrcalls-webinarjam',sandbox:true,contextIsolation:true,nodeIntegration:false}});
-  webinarWindows.set(id,meeting);
-  meeting.webContents.setWindowOpenHandler(() => ({action:'deny'}));
-  const monitor=new WebinarSession({window:meeting,getProfile:()=>attendeeProfile.readProfile(attendeeProfilePath()),onStatus:status=>win?.webContents.send('webinar:status',id,status)});
-  monitor.start();meeting.on('closed',()=>{webinarWindows.delete(id);win?.webContents.send('webinar:status',id,'Webinar window closed');});
-  try{await meeting.loadURL(call.url)}catch(error){monitor.stop();meeting.close();throw error;}
+ipcMain.handle('record:start', async (_e, id, title) => {
+  const dir = readData().recordingFolder || path.join(app.getPath('videos'), 'Callkeeper');
+  return recordings.start(id, title, dir);
 });
-ipcMain.handle('record:start', (_e, id, title) => {
-  if (stream) throw Error('A recording is already in progress');
-  fs.mkdirSync(dir,{recursive:true});
-  const file = path.join(dir, validation.recordingFileName(title));
-  stream = fs.createWriteStream(file, {flags:'wx'}); activeId = id; stream.on('error', (err) => { win?.webContents.send('record:error', err.message); stream = null; activeId = null; }); return file;
-});
-ipcMain.handle('record:chunk', async (_e, id, bytes) => { if (!stream || activeId !== id) throw Error('Recording is not active'); await new Promise((resolve,reject) => stream.write(Buffer.from(bytes), err => err ? reject(err) : resolve())); });
-ipcMain.handle('record:stop', async (_e,id) => { if (!stream || activeId !== id) return; const current = stream; stream = null; activeId = null; await new Promise((resolve,reject) => current.end(err => err ? reject(err) : resolve())); });
-function findRecording(id) { const call = readData().calls.find(c => c.id === id); if (!call || !call.file || call.status === 'recording') throw Error('Recording is not available yet.'); if (!settings.isRecordingFile(call.file)) throw Error('Recording file path is not valid.'); if (!fs.existsSync(call.file)) throw Error('Recording file is unavailable. Check the folder and Google Drive sync.'); return call.file; }
+ipcMain.handle('record:chunk', (_e,id,bytes) => recordings.write(id,bytes));
+ipcMain.handle('record:stop', (_e,id) => recordings.stop(id));
+function findRecording(id) { const call = readData().calls.find(c => c.id === id); if (!call || !call.file || call.status === 'recording') throw Error('Recording is not available yet.'); if (!fs.existsSync(call.file)) throw Error('Recording file is unavailable. Check the folder and Google Drive sync.'); return call.file; }
 ipcMain.handle('file:show', (_e,id) => shell.showItemInFolder(findRecording(id)));
 ipcMain.handle('file:play', (_e,id) => pathToFileURL(findRecording(id)).href);
 ipcMain.handle('folder:choose', async () => { const result = await dialog.showOpenDialog(win, { title:'Choose a recordings folder', properties:['openDirectory','createDirectory'] }); return result.canceled ? null : result.filePaths[0]; });
